@@ -16,7 +16,7 @@ print("[ 2 ] - Retirada de exames")
 print("[ 3 ] - Retorno de consultas")
 print("[ 4 ] - Falar com o atendente")
 print("[ 5 ] - Sair")
-print("=" * 35)
+print("=" * 40)
 
 opcao = input("Digite o número da opção desejada: ")
 
