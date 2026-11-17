@@ -6,6 +6,7 @@ opcoes_menu = [
     "Marcação de consultas",
     "Retirada de exames",
     "Retorno de consultas",
+    "Cancelar consulta",
     "Falar com o atendente",
     "Sair",
 ]
@@ -21,9 +22,29 @@ horarios = [
 ]
 
 exames_prontos = ["1001", "1002", "1005", "1010"]
+exames_em_analise = ["1003", "1004", "1006"]
 
 # cada consulta fica salva como [nome, especialidade, horario]
 consultas = []
+
+
+def ler_numero(mensagem, maximo):
+    # Repete a pergunta até a pessoa digitar um número de 0 a maximo
+    while True:
+        valor = input(mensagem).strip()
+        if valor.isdigit() and int(valor) <= maximo:
+            return int(valor)
+        print(f"Opção inválida. Digite um número de 0 a {maximo}.")
+
+
+def buscar_consultas(nome):
+    # Devolve as consultas marcadas no nome informado, sem diferenciar maiúsculas
+    encontradas = []
+    for consulta in consultas:
+        if consulta[0].lower() == nome.lower():
+            encontradas.append(consulta)
+    return encontradas
+
 
 print(LINHA)
 print("       Bem-vindo ao Dr. Saúde!")
@@ -43,13 +64,13 @@ while continuar:
         print("\nMarcação de consultas\n")
         for i in range(len(especialidades)):
             print(f"[ {i + 1} ] - {especialidades[i]}")
+        print("[ 0 ] - Voltar")
 
-        escolha = input("Escolha a especialidade: ").strip()
+        escolha = ler_numero("Escolha a especialidade: ", len(especialidades))
 
-        if escolha.isdigit() and 1 <= int(escolha) <= len(especialidades):
-            pos = int(escolha) - 1
-            especialidade = especialidades[pos]
-            livres = horarios[pos]
+        if escolha != 0:
+            especialidade = especialidades[escolha - 1]
+            livres = horarios[escolha - 1]
 
             if len(livres) == 0:
                 print(f"\nNão há horários livres para {especialidade}.")
@@ -57,23 +78,27 @@ while continuar:
                 print(f"\nHorários livres para {especialidade}:")
                 for i in range(len(livres)):
                     print(f"[ {i + 1} ] - {livres[i]}")
+                print("[ 0 ] - Voltar")
 
-                escolha_hora = input("Escolha o horário: ").strip()
+                escolha_hora = ler_numero("Escolha o horário: ", len(livres))
 
-                if escolha_hora.isdigit() and 1 <= int(escolha_hora) <= len(livres):
-                    hora = livres[int(escolha_hora) - 1]
+                if escolha_hora != 0:
+                    hora = livres[escolha_hora - 1]
+
                     nome = input("Digite seu nome completo: ").strip()
+                    while not nome.replace(" ", "").isalpha():
+                        print("Nome inválido. Use apenas letras.")
+                        nome = input("Digite seu nome completo: ").strip()
+                    nome = nome.title()
 
-                    if nome == "":
-                        print("\nNome não informado, a marcação foi cancelada.")
-                    else:
+                    confirma = input(f"\nConfirmar {especialidade}, às {hora}, para {nome}? (s/n): ").strip().lower()
+
+                    if confirma in ["s", "sim"]:
                         consultas.append([nome, especialidade, hora])
                         livres.remove(hora)
                         print(f"\nConsulta marcada: {especialidade}, às {hora}, para {nome}.")
-                else:
-                    print("\nHorário inválido.")
-        else:
-            print("\nEspecialidade inválida.")
+                    else:
+                        print("\nMarcação cancelada.")
 
     elif opcao == "2":
         protocolo = input("\nDigite o número do protocolo do exame: ").strip()
@@ -81,18 +106,14 @@ while continuar:
         if protocolo in exames_prontos:
             print("\nSeu exame já está pronto.")
             print("Pode retirar na recepção, de segunda a sexta, das 7h às 17h, com um documento com foto.")
-        elif protocolo.isdigit():
-            print("\nSeu exame ainda não está pronto. Tente de novo amanhã.")
+        elif protocolo in exames_em_analise:
+            print("\nSeu exame ainda está em análise. Tente de novo amanhã.")
         else:
-            print("\nProtocolo inválido. Digite só os números.")
+            print("\nProtocolo não encontrado. Confira o número no seu comprovante.")
 
     elif opcao == "3":
         nome = input("\nDigite seu nome completo: ").strip()
-
-        encontradas = []
-        for consulta in consultas:
-            if consulta[0].lower() == nome.lower():
-                encontradas.append(consulta)
+        encontradas = buscar_consultas(nome)
 
         if len(encontradas) == 0:
             print("\nNão encontramos consultas nesse nome.")
@@ -103,14 +124,47 @@ while continuar:
             print("O retorno é gratuito se for feito em até 30 dias. É só procurar a recepção.")
 
     elif opcao == "4":
-        print("\nLigue para (00) 0000-0000, de segunda a sexta, das 7h às 19h.")
+        nome = input("\nDigite seu nome completo: ").strip()
+        encontradas = buscar_consultas(nome)
+
+        if len(encontradas) == 0:
+            print("\nNão encontramos consultas nesse nome.")
+        else:
+            print("\nSuas consultas:")
+            for i in range(len(encontradas)):
+                print(f"[ {i + 1} ] - {encontradas[i][1]}, às {encontradas[i][2]}")
+            print("[ 0 ] - Voltar")
+
+            escolha = ler_numero("Qual consulta deseja cancelar? ", len(encontradas))
+
+            if escolha != 0:
+                consulta = encontradas[escolha - 1]
+                confirma = input(f"\nCancelar {consulta[1]}, às {consulta[2]}? (s/n): ").strip().lower()
+
+                if confirma in ["s", "sim"]:
+                    consultas.remove(consulta)
+                    # o horário volta para a lista de livres da especialidade
+                    pos = especialidades.index(consulta[1])
+                    horarios[pos].append(consulta[2])
+                    horarios[pos].sort()
+                    print(f"\nConsulta cancelada. O horário das {consulta[2]} está livre de novo.")
+                else:
+                    print("\nA consulta foi mantida.")
 
     elif opcao == "5":
+        print("\nLigue para (00) 0000-0000, de segunda a sexta, das 7h às 19h.")
+
+    elif opcao == "6":
         print("\nObrigado por utilizar o Dr. Saúde. Até logo!")
         continuar = False
 
     else:
-        print("\nOpção inválida! Por favor, digite um número de 1 a 5.")
+        print(f"\nOpção inválida! Por favor, digite um número de 1 a {len(opcoes_menu)}.")
 
     if continuar:
         input("\nAperte Enter para voltar ao menu...")
+
+input("\nPressione Enter para fechar...")
+
+input("\nPressione Enter para fechar...")
+

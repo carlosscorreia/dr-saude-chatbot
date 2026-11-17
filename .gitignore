@@ -1,0 +1,7 @@
+# Arquivos gerados pelo PyInstaller
+build/
+dist/
+
+# Cache do Python
+__pycache__/
+*.pyc
